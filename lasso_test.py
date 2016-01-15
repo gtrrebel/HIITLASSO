@@ -4,8 +4,12 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 import sklearn.covariance
 import sklearn.linear_model
-
-#GAUSSIAN RANDOM MARKOW FIELD
+from pandas import *
+import pandas.rpy.common as com
+import rpy2.robjects as ro
+import rpy2.robjects.numpy2ri
+rpy2.robjects.numpy2ri.activate()
+from rpy2.robjects.packages import importr
 
 np.set_printoptions(precision=2)
 
@@ -130,7 +134,7 @@ def plot_glassoprec0_3(X, indim, outdim, alpha = 0.8):
 	print sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
 	print (indim*(indim + 2*outdim) + outdim)
 
-def plot_all0_3(X, indim, outdim, alpha = 0.8, cutoff = 10.0):
+def plot_all0_3(X, indim, outdim, alpha = 0.2, cutoff = 10.0):
 	C = np.cov(X)
 	Cest, Pest = sklearn.covariance.graph_lasso(C, alpha)
 	Cinv = scipy.linalg.inv(C)
@@ -138,12 +142,14 @@ def plot_all0_3(X, indim, outdim, alpha = 0.8, cutoff = 10.0):
 	pr2, rec2 = precision_recall_curve(Cinv, indim, outdim, cutoff)
 
 	plt.figure()
-	plt.subplot(2,2,1)
+	ax1 = plt.subplot(2,2,1)
+	ax1.set_title("Glasso")
 	plt.imshow(abs(Pest),interpolation='none',cmap='Reds')
 	plt.colorbar()
 	plt.subplot(2,2,2)
 	plt.spy(Pest)
-	plt.subplot(2,2,3)
+	ax2 = plt.subplot(2,2,3)
+	ax2.set_title("Naive")
 	plt.imshow(abs(Cinv),interpolation='none',cmap='Reds')
 	plt.colorbar()
 	plt.subplot(2,2,4)
@@ -159,8 +165,9 @@ def plot_all0_3(X, indim, outdim, alpha = 0.8, cutoff = 10.0):
 	plt.plot(rec2, pr2, linewidth=1.0, label="naive")
 	plt.legend()
 
-	print sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
-	print (indim*(indim + 2*outdim) + outdim)
+	print "Glasso nonzero:", sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
+	print "Naive nonzero:", sum(sum(1 for i in Pe if abs(i) > cutoff) for Pe in Cinv)
+	print "Real nonzero:", (indim*(indim + 2*outdim) + outdim)
 
 	plt.show()
 
@@ -171,7 +178,16 @@ def find_alpha(X, indim, outdim):
 		Cest, Pest = sklearn.covariance.graph_lasso(C, alpha)
 		print alpha, sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
 
-indim, outdim = 2, 10
+def fastclime_test(X):
+	nr,nc = X.shape
+	Xr = ro.r.matrix(X, nrow=nr, ncol=nc)
+	ro.r.assign("X", X)
+	fastclime = importr('fastclime')
 
-X = generate_linmixt(indim, outdim, 100000)
-plot_all0_3(X, indim, outdim)
+indim, outdim = 10, 50
+X = generate_linmixt(indim, outdim, 1000)
+
+fastclime_test(X)
+
+if False:
+	plot_all0_3(X, indim, outdim)
