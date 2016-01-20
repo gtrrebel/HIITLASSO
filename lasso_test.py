@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 import sklearn.covariance
 import sklearn.linear_model
-from pandas import *
-import pandas.rpy.common as com
+#from pandas import *
+#import pandas.rpy.common as com
 import rpy2.robjects as ro
 import rpy2.robjects.numpy2ri
 rpy2.robjects.numpy2ri.activate()
@@ -183,11 +183,12 @@ def fastclime_test(X):
 	Xr = ro.r.matrix(X, nrow=nr, ncol=nc)
 	ro.r.assign("X", X)
 	fastclime = importr('fastclime')
+	print "jes"
 
 indim, outdim = 10, 50
 X = generate_linmixt(indim, outdim, 1000)
 
 fastclime_test(X)
 
-if False:
+if True:
 	plot_all0_3(X, indim, outdim)

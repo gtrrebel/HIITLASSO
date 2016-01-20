@@ -1,0 +1,4 @@
+%load_ext rmagic
+%R x = c(1,2,3)
+%Rpull x
+print x
