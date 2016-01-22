@@ -134,6 +134,24 @@ def plot_glassoprec0_3(X, indim, outdim, alpha = 0.8):
 	print sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
 	print (indim*(indim + 2*outdim) + outdim)
 
+def fastclime_cov(C, alpha = 0.2):
+	d = {'fastclime.lambda': 'fastclime_lamb'}
+	fastclime = importr('fastclime', robject_translations = d)
+	out1 = fastclime.fastclime(C)
+	O = fastclime.fastclime_lamb(out1[4], out1[5], alpha)
+	return np.array(O[0])
+
+def naive_cov(C):
+	return scipy.linalg.inv(C)
+
+def glasso_cov(C, alpha = 0.8):
+	return sklearn.covariance.graph_lasso(C, alpha)[1]
+
+def scio_cov(C, alpha = 0.1):
+	scio = importr('scio')
+	return np.array(scio.scio(C, alpha)[0])
+
+
 def plot_all0_3(X, indim, outdim, alpha = 0.2, cutoff = 10.0):
 	C = np.cov(X)
 	Cest, Pest = sklearn.covariance.graph_lasso(C, alpha)
@@ -178,17 +196,93 @@ def find_alpha(X, indim, outdim):
 		Cest, Pest = sklearn.covariance.graph_lasso(C, alpha)
 		print alpha, sum(sum(1 for i in Pe if abs(i) > 0) for Pe in Pest)
 
-def fastclime_test(X):
-	nr,nc = X.shape
-	Xr = ro.r.matrix(X, nrow=nr, ncol=nc)
-	ro.r.assign("X", X)
-	fastclime = importr('fastclime')
-	print "jes"
+def fastclime_test(X, indim, outdim):
+	C = np.cov(X)
+	Ps = fastclime_cov(C)
+	TPC = (indim*(indim + 2*outdim) + outdim)
+	ala, yla = 0.01, 5
+	for _ in xrange(20):
+		kes = (ala + yla)/2
+		P = fastclime_cov(C, kes)
+		TC = sum(sum(1 for i in l if abs(i) > 0) for l in P)
+		if (TC >= TPC):
+			ala = kes
+		else:
+			yla = kes
+	P = fastclime_cov(C, ala)
+	return precision_recall(P, indim, outdim)[0]
 
-indim, outdim = 10, 50
-X = generate_linmixt(indim, outdim, 1000)
 
-fastclime_test(X)
+def scio_test(X, indim, outdim):
+	C = np.cov(X)
+	TPC = (indim*(indim + 2*outdim) + outdim)
+	ala, yla = 0.01, 5
+	for _ in xrange(20):
+		kes = (ala + yla)/2
+		P = scio_cov(C, kes)
+		TC = sum(sum(1 for i in l if abs(i) > 0) for l in P)
+		if (TC >= TPC):
+			ala = kes
+		else:
+			yla = kes
+	P = scio_cov(C, ala)
+	return precision_recall(P, indim, outdim)[0]
 
-if True:
+def glasso_test(X, indim, outdim):
+	C = np.cov(X)
+	TPC = (indim*(indim + 2*outdim) + outdim)
+	ala, yla = 0.01, 5
+	for _ in xrange(20):
+		kes = (ala + yla)/2
+		P = glasso_cov(C, kes)
+		TC = sum(sum(1 for i in l if abs(i) > 0) for l in P)
+		if (TC >= TPC):
+			ala = kes
+		else:
+			yla = kes
+	P = glasso_cov(C, ala)
+	return precision_recall(P, indim, outdim)[0]
+
+
+def naive_test(X, indim, outdim):
+	C = np.cov(X)
+	TPC = (indim*(indim + 2*outdim) + outdim)
+	ala, yla = 0.0001, 5
+	P = naive_cov(C)
+	while (sum(sum(1 for i in l if abs(i) > ala) for l in P) > TPC):
+		ala *= 2
+	yla = ala
+	ala /= 2
+	for _ in xrange(20):
+		kes = (ala + yla)/2
+		TC = sum(sum(1 for i in l if abs(i) > kes) for l in P)
+		if (TC >= TPC):
+			ala = kes
+		else:
+			yla = kes
+	return precision_recall(P, indim, outdim, cutoff = ala)[0]
+
+indim, outdim, n = 2, 10, 16
+
+naives, glassos, scios, climes = [], [], [], []
+
+m = 10
+
+for _ in xrange(m):
+	X = generate_linmixt(indim, outdim, n)
+	naives.append(naive_test(X, indim, outdim))
+	glassos.append(glasso_test(X, indim, outdim))
+	climes.append(fastclime_test(X, indim, outdim))
+	scios.append(scio_test(X, indim, outdim))
+
+plt.figure()
+x = range(m)
+plt.plot(x, naives, 'r', label = 'naive')
+plt.plot(x, glassos, 'g', label = 'glasso')
+plt.plot(x, scios, 'b', label = 'scios')
+plt.plot(x, climes, 'y', label = 'climes')
+plt.show()
+
+
+if False:
 	plot_all0_3(X, indim, outdim)
