@@ -13,7 +13,7 @@ from rpy2.robjects.packages import importr
 
 default_data_type = "case"
 default_noise_std = 0.1
-default_sample_size = 1000
+default_sample_size = 100
 default_indim = 2
 default_outdim = 10
 default_alpha = 0.1
@@ -79,7 +79,7 @@ def generate_case(indim = default_indim, outdim = default_outdim, samples = defa
 
 def generate_band(dim = default_outdim, samples = default_sample_size, only_shape=False):
 	if (only_shape):
-		return np.array([[1 if (abs(i - j) <= 2) else 0 for i in xrange(outdim)] for j in xrange(outdim)])
+		return np.array([[1 if (abs(i - j) <= 2) else 0 for i in xrange(dim)] for j in xrange(dim)])
 	omega = np.eye(dim)
 	p1, p2 = 0.6, 0.3
 	for i in xrange(dim - 1):
@@ -139,7 +139,7 @@ def scio(C, alpha = default_alpha):
 	scio = importr('scio')
 	return np.array(scio.scio(C, alpha)[0])
 
-def fastclime(C, alpha = default_alpha):
+def clime(C, alpha = default_alpha):
 	d = {'fastclime.lambda': 'fastclime_lamb'}
 	fastclime = importr('fastclime', robject_translations = d)
 	out1 = fastclime.fastclime(C)
